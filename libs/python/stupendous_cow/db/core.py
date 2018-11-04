@@ -24,6 +24,13 @@ class ResultSet:
     def __iter__(self):
         return self
 
+    def __del__(self):
+        if self._cursor:
+            try:
+                self._cursor.close()
+            except:
+                pass  # Swallow the exception, since there is nothing to do
+
     def next(self):
         rec = self._cursor.fetchone()
         if not rec:
@@ -59,10 +66,13 @@ def format_for_sql(value):
     v = prepare_variable(value)
     if isinstance(v, str) or isinstance(v, unicode):
         return "'%s'" % value
+    elif value == None:
+        return 'NULL'
     else:
         return str(v)
 
-_LEGAL_CONSTRAINT_TYPES = (int, float, datetime.datetime, str, unicode)
+_LEGAL_CONSTRAINT_TYPES = (int, float, datetime.datetime, str, unicode,
+                           None.__class__)
 
 def has_legal_constraint_type(value):
     return any(isinstance(value, t) for t in _LEGAL_CONSTRAINT_TYPES)
@@ -71,7 +81,8 @@ def construct_constraint(column, constraint):
     def verify_constraint_type(value):
         if not has_legal_constraint_type(value):
             msg = 'Value of type %s cannot be used as a constraint for ' + \
-                  'column %s' % (value.__class__.__name__, column)
+                  'column %s'
+            msg = msg % (value.__class__.__name__, column)
             raise ValueError(msg)
         return True
     
@@ -79,7 +90,7 @@ def construct_constraint(column, constraint):
         return constraint.to_sql(column)
     elif isinstance(constraint, tuple) or isinstance(constraint, list):
         all(verify_constraint_type(x) for x in constraint)
-        formatted = ', '.join(format_for_sql(x for x in constraint))
+        formatted = ', '.join(format_for_sql(x) for x in constraint)
         sql = '%s IN (%s)' % (column, formatted)
         return (sql, ())
     elif constraint == None:
@@ -100,8 +111,8 @@ def construct_constraints(criteria):
         sql.append(criteria_sql)
         variables.extend(criteria_variables)
     if len(sql) > 1:
-        return (' AND '.join('(%s)' % s for s in sql), variables)
-    return (sql[0], variables)
+        return (' AND '.join('(%s)' % s for s in sql), tuple(variables))
+    return (sql[0], tuple(variables))
 
 def construct_where_clause(criteria):
     if criteria:
@@ -127,26 +138,23 @@ def construct_insert_statement(table, values):
 
 def construct_update_statement(table, columns, criteria):
     def construct_column_update(column, value):
-        return '%s=%s' % (column, format_for_sql(value))
+        return '%s = %s' % (column, format_for_sql(value))
     
-    cols = ', '.join(construct_column_update(**x) for x in columns.iteritems())
+    cols = ', '.join(construct_column_update(*x) for x in columns.iteritems())
     (where_clause, variables) = construct_where_clause(criteria)
     stmt = 'UPDATE %s SET %s%s' % (table, cols, where_clause)
     return (stmt, variables)
 
 def construct_delete_statement(table, criteria):
-    (where_clause, variables) = construct_delete_statement(criteria)
+    (where_clause, variables) = construct_where_clause(criteria)
     stmt = 'DELETE FROM %s%s' % (table, where_clause)
     return (stmt, variables)
 
 def execute_count(db, table, criteria):
     (stmt, variables) = construct_count_statement(table, criteria)
-    cursor = db.cursor()
-    try:
-        cursor.execute(stmt, variables)
-        return cursor.fetchone()[0]
-    finally:
-        cursor.close()
+    with OneColumnResultSet(db.cursor(), lambda x: x) as count:
+        count.init(stmt, variables)
+        return next(count)
 
 def execute_select(db, table, columns, criteria,
                     create_result = lambda **x: x):
@@ -195,3 +203,10 @@ def next_item_id(db, table_name):
     finally:
         cursor.close()
 
+def create_id_sequence_table(cursor):
+    cursor.execute("""
+        CREATE TABLE id_sequence(
+            table_name VARCHAR(256) PRIMARY KEY,
+            id NUMBER
+        )""")
+                       

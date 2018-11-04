@@ -13,6 +13,8 @@ class Table:
         self._create_item = item_constructor
         self._get_column_value = column_value_extractor
 
+        self._retrieve_ids_sql = \
+            'SELECT %s FROM %s' % (self._id_column, self._table_name)
         self._item_exists_sql = \
             'SELECT count(*) FROM %s WHERE %s = ?' % (table_name, columns[0])
 
@@ -21,8 +23,9 @@ class Table:
         def return_id(args):
             return args[self._id_column]
 
-        return execute_select(self._db, self._table_name, self._id_column,
-                              { }, return_id)
+        with OneColumnResultSet(self._db.cursor(), lambda x: x) as rs:
+            rs.init(self._retrieve_ids_sql, ())
+            return [ i for i in rs ]
 
     @property
     def all(self):
@@ -81,12 +84,8 @@ class Table:
                        { self._id_column : item_id })
 
     def _exists(self, item_id):
-        cursor = self._db.cursor()
-        try:
-            cursor.execute(self._item_exists_sql, (item_id, ))
-            return cursor.fetchone()[0]
-        finally:
-            cursor.close()
+        return execute_count(self._db, self._table_name,
+                             {self._id_column : item_id })
 
     def _normalize_criteria(self, criteria):
         return criteria
@@ -101,6 +100,11 @@ class Table:
 class EnumTable:
     def __init__(self, type_name, db, table_name, columns, item_constructor,
                  column_value_extractor):
+        def id_for(x):
+            return self._get_column_value(x, columns[0])
+        def name_for(x):
+            return self._get_column_value(x, columns[1])
+        
         self._type_name = type_name
         self._db = db
         self._table_name = table_name
@@ -113,14 +117,12 @@ class EnumTable:
         with execute_select(db, table_name, columns, { },
                             item_constructor) as results:
             self._all = [ x for x in results ]
-        self._by_id = dict((x, self._get_column_value(x, self._id_column)) \
-                               for x in self._all)
-        self._by_name = dict((x, self._get_column_value(x, self._name_column)) \
-                                 for x in self._all)
+        self._by_id = dict((id_for(x), x) for x in self._all)
+        self._by_name = dict((name_for(x), x) for x in self._all)
 
     @property
     def all(self):
-        return _all
+        return self._all
 
     def with_id(self, item_id):
         return self._by_id.get(item_id, None)
@@ -162,10 +164,16 @@ class EnumTable:
 
     def update(self, item):
         item_id = self._get_column_value(item, self._id_column)
+        item_name = self._get_column_value(item, self._name_column)
+        
         if not item_id:
             msg = 'Cannot update %s with no id' % self._type_name
             raise ValueError(msg)
-        old_item_name = self._get_column_value(item, self._name_column)
+        if not item_id in self._by_id:
+            msg = 'Cannot update non-existent %s with id %s'
+            msg = msg % (self._type_name, item_id)
+            raise ValueError(msg)
+        old_item_name = self._by_id[item_id].name
 
         values = dict((x, self._get_column_value(item, x)) \
                           for x in self._columns[1:])
@@ -182,28 +190,43 @@ class EnumTable:
                 break
         self._by_id[item_id] = new_item
 
-        item_name = self._get_column_value(item, self._name_column)
         if item_name != old_item_name:
             del self._by_name[old_item_name]
-        self._by_name[item_name] = item
+        self._by_name[item_name] = new_item
 
     def delete(self, item):
-        item_id = self._get_column_value(item, self._id_column)
+        def id_for(x):
+            return self._get_column_value(x, self._id_column)
+        
+        item_id = id_for(item)
+        item_name = self._get_column_value(item, self._name_column)
+
         if not item_id:
             msg = 'Cannot delete %s with no id' % self._type_name
             raise ValueError(msg)
+
+        if not item_id in self._by_id:
+            msg = 'Cannot delete non-existent %s "%s"'
+            msg = msg % (self._type_name, item.name)
+            raise ValueError(msg)
+
+        if self._by_id[item_id].name != item_name:
+            msg = 'Cannot delete %s with id %s -- the item with that id ' + \
+                  'has name "%s" but the name of the %s passed to ' + \
+                  'delete() is "%s" -- the two must be the same.'
+            msg = msg % (self._type_name, item_id, self._by_id[item_id].name,
+                         self._type_name, item_name)
+            raise ValueError(msg)
+        
         if self._count_references_to(item_id):
             msg = 'Cannot delete %s "%s" because there are still ' + \
                   'references to it'
             msg = msg % (self._type_name, item.name)
             raise ValueError(msg)
 
-        item_name = self._get_column_value(item, self._name_column)
         execute_delete(self._db, self._table_name,
                        { self._id_column : item_id })
-        self._all = \
-            [ x for x in self._all \
-                  if self._get_column_value(x, self._id_column) != item_id ]
+        self._all = [ x for x in self._all if id_for(x) != item_id ]
         del self._by_id[item_id]
         del self._by_name[item_name]
 

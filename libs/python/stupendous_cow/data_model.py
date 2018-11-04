@@ -1,15 +1,13 @@
 """Classes that make up the stupendous_cow data model and their associated
 helper functions."""
 
-class _EnumeratedConstant:
-    __slots__ = ('id', 'name')
-    
-    def __init__(self, name, id = None):
-        # int or None; Unique id for article type.  None if not yet assigned
-        self.id = id
+import collections
 
-        # str; Article type name (also unique)
-        self.name = name
+_EnumeratedConstantTuple = collections.namedtuple('_EnumeratedConstantTuple',
+                                                  ('id', 'name'))
+class _EnumeratedConstant(_EnumeratedConstantTuple):
+    def __new__(_cls, name, id = None):
+        return _EnumeratedConstantTuple.__new__(_cls, id, name)
 
     def __str__(self):
         return self.name
@@ -24,14 +22,14 @@ class ArticleType(_EnumeratedConstant):
 class Category(_EnumeratedConstant):
     pass
 
-class Venue(_EnumeratedConstant):
-    __slots__ = ('abbreviation', )
-    
-    def __init__(self, name, abbreviation, id = None):
-        _EnumeratedConstant.__init__(self, name, id)
+_Venue = collections.namedtuple('_Venue', ('id', 'name', 'abbreviation'))
 
-        # str; Abbreviation for venue's name (e.g. ICML, NIPS, etc.)
-        self.abbreviation = abbreviation
+class Venue(_Venue):
+    def __new__(_cls, name, abbreviation, id = None):
+        return _Venue.__new__(_cls, id, name, abbreviation)
+
+    def __str__(self):
+        return self.abbreviation
 
     def __repr__(self):
         return 'Venue(%s, %s, %s)' % (repr(self.name), repr(self.abbreviation),
@@ -65,10 +63,13 @@ class Article:
         self.last_indexed_at = last_indexed_at
 
     def __str__(self):
-        return 'Article(%s, %s %s)' % (self.title, self.venue.abbreviation,
+        return 'Article(%s, %s %s)' % (repr(self.title),
+                                       self.venue.abbreviation,
                                        self.year)
 
     def __repr__(self):
         # TODO: Add some more details...
-        return 'Article(%s, %s %s)' % (self.title, self.venue.abbreviation,
-                                       self.year)
+        return 'Article(%s, %s, %s, id = %s)' % (repr(self.title),
+                                                 repr(self.venue.abbreviation),
+                                                 repr(self.year),
+                                                 repr(self.id))

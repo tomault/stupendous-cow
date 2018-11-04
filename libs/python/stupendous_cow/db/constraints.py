@@ -6,7 +6,7 @@ class ColumnConstraint:
 
     def to_sql(self, column):
         sql = '%s %s ?' % (column, self._operator)
-        variables = (prepare_variable(value), )
+        variables = (prepare_variable(self.value), )
         return (sql, variables)
 
 class GreaterThan(ColumnConstraint):
