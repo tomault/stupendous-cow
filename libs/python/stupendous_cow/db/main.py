@@ -157,6 +157,12 @@ class _Venues(EnumTable):
                            Venue, getattr)
         self._articles = None
 
+    def with_abbreviation(self, abbreviation):
+        # TODO: Create an abbreviation map and maintain it in add(), update()
+        #       and delete().  Linear scan is good enough for now
+        tmp = [ x for x in self._all if x.abbreviation == abbreviation ]
+        return tmp[0] if tmp else None
+
     def _count_references_to(self, venue_id):
         return self._articles.count(venue_id = venue_id)
 

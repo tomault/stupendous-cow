@@ -1,0 +1,90 @@
+NIPS 2015-2018
+- All SS have same format
+- All papers in Papers directory
+
+ACL 2017
+- Type, Title, Pages, Area, Topics, Priority, Status, Has Summary, Is_Read, Downloaded_As
+- Long Papers, Short Papers, TACL Papers, SRW Papers
+- Long Summaries, Short Summaries, TACL Summaries
+- Abstracts in Preliminary Abstracts
+- Papers in BeforeConferencePapers/{Long,Short,TACL} and AfterConferencePapers
+
+ACL 2018
+- The papers directory is papers from NAACL 2018
+
+CIKM 2016
+- TITLE, Page, AREA, TOPICS, PRIORITY, RELEVANCE, INTEREST, STATUS, HAS_SUMMARY, IS_READ
+- Long Papers, Short Papers, Industry Papers
+- Long Summaries, Short Summaries, Industry Summaries
+- Need to add and fill in Downloaded_As column
+- Papers in industry, long, short directories
+
+CIKM 2017
+- TITLE, Page, AREA, TOPICS, PRIORITY, RELEVANCE, INTEREST, STATUS, HAS_SUMMARY	IS_READ, DOWNLOADED_AS
+- Long Papers, Short Papers, Industry Papers
+- Long Summaries, Short Summaries, Industry Summaries
+- Industry is blank, so ignore it
+- Papers in Long, Short directories
+
+ICLR 2013 - 2015
+
+ICLR 2016
+
+ICLR 2017
+
+ICLR 2018
+
+ICML 2014
+
+ICML 2015
+
+ICML 2016
+
+ICML 2017
+
+ICML 2018
+
+KDD 2016
+
+KDD 2017
+
+NAACL 2015
+
+NAACL 2016
+
+NAACL 2018
+
+SIGIR 2014
+
+SIGIR 2015
+
+SIGIR 2016
+
+SIGIR 2017
+
+SIGIR 2018
+
+Configuration File
+
+Venue: <Abbreviation>
+Year:  <#>
+DocumentGroup_1:
+  Title: <ss-path> | extracted
+  Abstract: <ss-path> | file | extracted | NONE
+  ContentDir: <dir> or <list-of-dir>
+  Priority: <ss-path> | <constant> | NONE
+  DownloadedAs: <ss-path> | NONE
+  ArticleType: <ss-path> | <constant> | NONE
+  Category: <ss-path> | <constant> | NONE
+  SummaryTitle: <ss-path> | extracted | NONE
+  Summary: <ss-path> | NONE
+  IsRead: <ss-path> | <constant> | NONE
+  AbstractsFileReader: <reader-name>(<file-name>) | NONE
+  Extractor: <extractor-name> | NONE
+DocumentGroup_2:
+  ..
+
+<ss-path> := @sheet-name[column-name] |
+             @sheet-name[column-index]
+<constant> := Anything that doesn't begin with a @
+  
