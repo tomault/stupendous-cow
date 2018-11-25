@@ -1,4 +1,5 @@
 from stupendous_cow.data_model import Article, ArticleType, Venue, Category
+from stupendous_cow.util import normalize_title
 from stupendous_cow.db.core import OneColumnResultSet, create_id_sequence_table
 from stupendous_cow.db.tables import Table, EnumTable
 
@@ -10,8 +11,8 @@ import sqlite3
     
 class _Articles(Table):
     _UNIX_EPOCH = datetime.datetime.utcfromtimestamp(0)
-    table_columns = ('id', 'title', 'abstract', 'content', 'year',
-                     'priority', 'downloaded_as', 'pdf_file',
+    table_columns = ('id', 'title', 'normalized_title', 'abstract',
+                     'content', 'year', 'priority', 'downloaded_as', 'pdf_file',
                      'summary', 'is_read', 'created_at',
                      'last_updated_at', 'last_indexed_at',
                      'article_type_id', 'category_id', 'venue_id')
@@ -24,6 +25,7 @@ class _Articles(Table):
         self._venues = venues
 
         self._special_columns = {
+            'normalized_title' : lambda a: normalize_title(a.title),
             'is_read' : lambda a: 'Y' if a.is_read else 'N',
             'article_type_id' :
                 lambda a: a.article_type.id if a.article_type else None,
@@ -41,10 +43,10 @@ class _Articles(Table):
         rs = OneColumnResultSet(self._db.cursor(), lambda x: x)
         return rs.init(sql, ())
 
-    def _create_article(self, id, title, abstract, content, year, priority,
-                        downloaded_as, pdf_file, summary, is_read, created_at,
-                        last_updated_at, last_indexed_at, article_type_id,
-                        category_id, venue_id):
+    def _create_article(self, id, title, normalized_title, abstract, content,
+                        year, priority, downloaded_as, pdf_file, summary,
+                        is_read, created_at, last_updated_at, last_indexed_at,
+                        article_type_id, category_id, venue_id):
         def lookup_by_id(table, item_id):
             if item_id == None:
                 return None
@@ -102,6 +104,8 @@ class _Articles(Table):
 
     def _set_defaults_for_write(self, values):
         now = datetime.datetime.now().replace(microsecond = 0)
+        if not values['normalized_title']:
+            values['normalized_title'] = normalize_title(values['title'])
         if not values['created_at']:
             values['created_at'] = now
         values['last_updated_at'] = now
@@ -112,6 +116,7 @@ class _Articles(Table):
             CREATE TABLE articles (
                 id NUMBER,
                 title VARCHAR(512),
+                normalized_title VARCHAR(512),
                 abstract TEXT,
                 content TEXT,
                 year NUMBER,
@@ -274,6 +279,7 @@ class Database:
 
     @staticmethod
     def _populate_article_types(db):
+        db.article_types.add(ArticleType(name = ''))
         db.article_types.add(ArticleType(name = 'Poster'))
         db.article_types.add(ArticleType(name = 'Oral'))
         db.article_types.add(ArticleType(name = 'Spotlight'))
@@ -285,7 +291,7 @@ class Database:
 
     @staticmethod
     def _populate_categories(db):
-        pass
+        db.categories.add(Category(name = ''))
     
     @staticmethod
     def _populate_venues(db):
@@ -305,7 +311,3 @@ class Database:
                             abbreviation = 'NIPS'))
         db.venues.add(Venue(name = 'International ACM SIGIR Conference on Research and Development in Information Retrieval',
                             abbreviation = 'SIGIR'))
-
-    
-    
-    

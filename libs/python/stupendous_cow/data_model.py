@@ -62,6 +62,20 @@ class Article:
         self.last_updated_at = last_updated_at
         self.last_indexed_at = last_indexed_at
 
+    def update(self, new_article):
+        self.title = new_article.title
+        self.abstract = new_article.abstract
+        self.content = new_article.content
+        self.year = new_article.year
+        self.priority = new_article.priority
+        self.downloaded_as = new_article.downloaded_as
+        self.pdf_file = new_article.pdf_file
+        self.article_type = new_article.article_type
+        self.category = new_article.category
+        self.venue = new_article.venue
+        self.summary = new_article.summary
+        self.is_read = new_article.is_read
+        
     def __str__(self):
         return 'Article(%s, %s %s)' % (repr(self.title),
                                        self.venue.abbreviation,

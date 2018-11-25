@@ -43,10 +43,12 @@ class NipsAbstractFileReader:
 
     def _read_body(self, input):
         text = self._next_line(input)
-        body = ''
+        body = [ ]
         while text and text[0].isspace():
-            body += text
+            body.append(text)
+            text = self._next_line(input)
 
+        body = ''.join(body[1:]).strip()
         if not text:
             return (None, None, body)
         return (self._extract_title(text), self.line, body)
@@ -71,3 +73,6 @@ class NipsAbstractFileReader:
         raise IOError('Error on line %d of %s: %s' % (self.line, self.filename,
                                                       details))
 
+ABSTRACT_READER_FACTORIES = {
+    'nips' : NipsAbstractFileReader
+}

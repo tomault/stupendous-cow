@@ -1,5 +1,6 @@
 """Classes and functions to help out with unit testing"""
-
+import inspect
+import os.path
 import sqlite3
 import unittest
 
@@ -25,7 +26,7 @@ class DatabaseTestCase(unittest.TestCase):
 
         if len(items) < len(truth):
             args = (name, ', '.join(repr(i) for i in truth[len(items):]))
-            self.fail('There are extra %s: %s' % args)
+            self.fail('There are missing %s: %s' % args)
 
     def _compute_item_diffs(self, truth, item, fields):
         diffs = [ ]
@@ -58,3 +59,16 @@ class DatabaseTestCase(unittest.TestCase):
     def setUpDatabase(cls, cursor):
         raise RuntimeError("DatabaseTestCase.setUpDatabase() not implemented")
 
+resource_dir = None
+
+def get_resource_dir():
+    return resource_dir
+
+def set_resource_dir(subpath = ''):
+    global resource_dir
+    (path, _) = os.path.split(os.path.abspath(inspect.stack()[0][1]))
+    path = os.path.join(path, '../../../tests/resources')
+    if subpath:
+        path = os.path.join(path, subpath)
+    path = os.path.realpath(os.path.normpath(path))
+    resource_dir = path

@@ -1,0 +1,17 @@
+Venue: NIPS
+Year: 2018
+DocumentGroup_1:
+  Title: @Papers[TITLE]
+  Abstract: file
+  ContentDir:
+  - /home/tomault/conferences
+  - /home/tomault/papers
+  Priority: @Papers[PRIORITY]
+  DownloadedAs: @Papers[DOWNLOADED_AS]
+  ArticleType: @Papers[TYPE]
+  Category: @Papers[AREA]
+  SummaryTitle: @Summaries[TITLE]
+  Summary: @Summaries[SUMMARY]
+  IsRead: @Papers[IS_READ]
+  AbstractsFileReader: nips("nips2018_details.txt")
+  Extractor: default_pdf

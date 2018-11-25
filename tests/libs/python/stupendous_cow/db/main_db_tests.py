@@ -4,6 +4,7 @@ from stupendous_cow.db.constraints import GreaterEqual, InRange, NotNull
 from stupendous_cow.db.main import Database, _Articles, _ArticleTypes, \
                                    _Categories, _Venues
 from stupendous_cow.data_model import Article, ArticleType, Category, Venue
+from stupendous_cow.util import normalize_title
 from stupendous_cow.testing import DatabaseTestCase
 import datetime
 import unittest
@@ -46,12 +47,12 @@ class ArticleTableTests(DatabaseTestCase):
         def insert_article(article):
             stmt = "INSERT INTO articles VALUES (:1, :2, :3, :4, :5, :6, " + \
                                                 ":7, :8, :9, :10, :11, " + \
-                                                ":12, :13, :14, :15, :16)"
-            is_read = 'Y' if article.is_read else 'N'            
-            data = (article.id, article.title, article.abstract,
-                    article.content, article.year, article.priority,
-                    article.downloaded_as, article.pdf_file, article.summary,
-                    is_read, to_seconds(article.created_at),
+                                                ":12, :13, :14, :15, :16, :17)"
+            is_read = 'Y' if article.is_read else 'N'
+            data = (article.id, article.title, normalize_title(article.title),
+                    article.abstract, article.content, article.year,
+                    article.priority, article.downloaded_as, article.pdf_file,
+                    article.summary, is_read, to_seconds(article.created_at),
                     to_seconds(article.last_updated_at),
                     to_seconds(article.last_indexed_at),
                     article.article_type.id, article.category.id,
@@ -78,7 +79,8 @@ class ArticleTableTests(DatabaseTestCase):
             cr_dt = datetime.datetime(2017, 10, 8,  9, 10, 11)
             upd_dt = cr_dt
             idx_dt = cr_dt
-            article = Article('Penguins Are Cute', 'Penguins are really cute.',
+            article = Article('Penguins Are Cute',
+                              'Penguins are really cute.',
                               'Penguins are the cutest animal in the ' + \
                               'world.  No animals are cuter than penguins.',
                               2017, 11, 'PenguinsAreCute',
@@ -92,7 +94,7 @@ class ArticleTableTests(DatabaseTestCase):
             cr_dt = datetime.datetime(2018, 6, 1,  12, 19, 04)
             upd_dt = datetime.datetime(2018, 6, 3, 15, 34, 19)
             idx_dt = datetime.datetime(2018, 6, 2, 12,  0,  0)
-            article = Article('Moo moo you you', 'Watashi wa ushi desu.',
+            article = Article('Moo moo, you  you', 'Watashi wa ushi desu.',
                               'Watashi wa ushi desu.  I am a cow.  I am ' + \
                               'the best cow in the world.',
                               2018, 5, 'MooMooYouYou',
@@ -167,6 +169,11 @@ class ArticleTableTests(DatabaseTestCase):
             result = [ x for x in rs ]
         self._verify_articles([ self.all_articles[2] ], result)
 
+    def test_retrieve_by_normalized_title(self):
+        with self.table.retrieve(normalized_title = 'moo moo you you') as rs:
+            result = [ x for x in rs ]
+        self._verify_articles([ self.all_articles[2] ], result)
+
     def test_need_reindexing(self):
         with self.table.need_reindexing() as rs:
             ids = [ x for x in rs ]
@@ -210,6 +217,9 @@ class ArticleTableTests(DatabaseTestCase):
         self._verify_articles(self.all_articles + [ created ],
                               self._retrieve_all())
 
+        with self.table.retrieve(normalized_title = 'cows on the run') as rs:
+            self._verify_articles([ created ], [ x for x in rs ])
+
     def test_update(self):
         article = self.all_articles[3]
         orig_id = article.id
@@ -248,10 +258,11 @@ class ArticleTableTests(DatabaseTestCase):
         self._verify_articles(self.all_articles, self._retrieve_all())        
 
     def _retrieve_all(self):
-        def create_article(id, title, abstract, content, year, priority,
-                           downloaded_as, pdf_file, summary, is_read,
-                           created_at, last_updated_at, last_indexed_at,
-                           article_type_id, category_id, venue_id):
+        def create_article(id, title, normalized_title, abstract, content,
+                           year, priority, downloaded_as, pdf_file, summary,
+                           is_read, created_at, last_updated_at,
+                           last_indexed_at, article_type_id, category_id,
+                           venue_id):
             def lookup_by_id(items, item_id):
                 if item_id == None:
                     return None
@@ -450,15 +461,16 @@ class MainDatabaseTests(DatabaseTestCase):
         Database._populate_categories(self.main_db)
         Database._populate_venues(self.main_db)
 
-        self.default_article_types = [ ArticleType('Poster', 1),
-                                       ArticleType('Oral', 2),
-                                       ArticleType('Spotlight', 3),
-                                       ArticleType('Long Academic', 4),
-                                       ArticleType('Long Industry', 5),
-                                       ArticleType('Short Academic', 6),
-                                       ArticleType('Short Industry', 7),
-                                       ArticleType('Journal', 8) ]
-        self.default_categories = [ ]
+        self.default_article_types = [ ArticleType('', 1),
+                                       ArticleType('Poster', 2),
+                                       ArticleType('Oral', 3),
+                                       ArticleType('Spotlight', 4),
+                                       ArticleType('Long Academic', 5),
+                                       ArticleType('Long Industry', 6),
+                                       ArticleType('Short Academic', 7),
+                                       ArticleType('Short Industry', 8),
+                                       ArticleType('Journal', 9) ]
+        self.default_categories = [ Category('', 1) ]
         self.default_venues = [
             Venue('Association for Computational Linguistics', 'ACL', 1),
             Venue('ACM International Conference on Information and ' +

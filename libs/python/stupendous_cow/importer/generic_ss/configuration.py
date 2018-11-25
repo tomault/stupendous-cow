@@ -2,7 +2,7 @@
 
 from stupendous_cow.importer.spreadsheets import SpreadsheetPath
 import codecs
-import PyYAML
+import yaml
 import re
 
 class Configuration:
@@ -34,11 +34,24 @@ class DocumentGroupConfiguration:
 
 class ConfigurationFileParser:
     _abstracts_file_spec_rex = re.compile('^([A-Za-z0-9_]+)\\("([^"]+)"\\)$')
+    _ss_path_rex = re.compile('^@([^[]+)\\[([^\\]]+)\\]\\s*$')
     
-    def load(self, filename):
-        self._filename = filename
-        with codecs.open(filename, 'r', 'utf-8') as input:
-            parameters = PyYAML.load(input)
+    def load(self, filename = None, stream = None):
+        if filename:
+            if stream:
+                raise ValueError('Cannot pass both "filename" and "stream"')
+            with codecs.open(filename, 'r', 'utf-8') as input:
+                parameters = yaml.load(input)
+            self._filename = filename
+        elif stream:
+            parameters = yaml.load(stream)
+            if hasattr(stream, 'name'):
+                self._filename = stream.name
+            else:
+                self._filename = '**Input Stream**'
+        else:
+            raise ValueError('Must pass one of "filename" or "stream"')
+        
         return self._parse_configuration(parameters)
 
     def load_from_string(self, text, source_name = ''):
@@ -67,6 +80,7 @@ class ConfigurationFileParser:
             elif not name in ('Venue', 'Year'):
                 self._error('Unknown configuration file parameter "%s"' % name)
 
+        document_groups.sort(key = lambda g: g.config_name)
         return Configuration(venue, year, document_groups)
 
     def _parse_document_group(self, name, index, parameters):
@@ -230,7 +244,7 @@ class ConfigurationFileParser:
                 full_name = self._full_name(name, parents)
                 msg = '%s has invalid spreadsheet path [%s]'
                 self._error(msg % (full_name, value))
-            return SpreadsheetPath(m.group(1), m.group(2))
+            return SpreadsheetPath(m.group(1).strip(), m.group(2).strip())
         elif not constants_allowed:
             msg = 'A constant is not a legal value for %s'
             self._error(msg % self._full_name(name, parents))

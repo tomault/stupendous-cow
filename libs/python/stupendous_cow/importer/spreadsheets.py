@@ -1,5 +1,6 @@
 """Classes and functions for reading spreadsheets.  Currently a wrapper over
 pyexcel."""
+import pyexcel
 
 class SpreadsheetPath:
     def __init__(self, sheet, column):
@@ -14,12 +15,11 @@ class SpreadsheetPath:
 
 
 class Row:
-    def __init__(self, column_name, column_map, data):
+    def __init__(self, column_names, column_map, data):
         self._column_names = column_names
         self._column_map = column_map
         self._length = len(column_names)
         self._data = data
-        
 
     @property
     def columns(self):
@@ -57,7 +57,7 @@ class Row:
     
     def _name_to_column(self, name):
         try:
-            return self._column_map(name)
+            return self._column_map[name]
         except KeyError:
             raise IndexError('No such column "%s"' % name)
 
@@ -97,7 +97,7 @@ class Worksheet:
 class Workbook:
     def __init__(self, filename):
         self._filename = filename
-        self._book = pyexcel.get_book(filename)
+        self._book = pyexcel.get_book(file_name = filename)
 
     @property
     def num_sheets(self):
@@ -105,7 +105,7 @@ class Workbook:
     
     @property
     def sheet_names(self):
-        return self._book.sheet_names
+        return self._book.sheet_names()
 
     def __getitem__(self, index):
-        return Sheet(self._book[index])
+        return Worksheet(self._book[index])

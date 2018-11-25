@@ -142,8 +142,9 @@ class EnumTable:
             msg = '%s with id %s already exists' % (self._type_name, item_id)
             raise ValueError(msg)
         if item_name in self._by_name:
+            print [repr(x) for x in self._by_name]
             msg = '%s with name "%s" already exists' % (self._type_name,
-                                                        item_id)
+                                                        item_name)
             raise ValueError(msg)
         values = dict((x, self._get_column_value(item, x)) \
                           for x in self._columns[1:])

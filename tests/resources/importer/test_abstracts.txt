@@ -1,0 +1,18 @@
+#11948 [Poster] Memory Augmented Policy Optimization for Program Synthesis and Semantic Parsing
+  Chen Liang · Mohammad Norouzi · Jonathan Berant · Quoc V Le · Ni Lao
+  This paper presents MAPO: a novel policy optimization formulation... 
+  
+
+#11999 [Poster] Fast deep reinforcement learning using online adjustments from the past
+  Steven Hansen · Alexander Pritzel · Pablo Sprechmann · Andre Barreto · Charles Blundell
+  We propose Ephemeral Value Adjusments (EVA): a means of allowing deep reinforcement learning agents...
+  EVA shifts the value predicted by a neural network with an estimate of the value function...
+  We show that EVA is performant on a demonstration task and Atari games.
+  
+
+#11992 [Poster] Diversity-Driven Exploration Strategy for Deep Reinforcement Learning
+  Zhang-Wei Hong · Tzu-Yun Shann · Shih-Yang Su · Yi-Hsiang Chang · Tsu-Jui Fu · Chun-Yi Lee
+  Efficient exploration remains a challenging research problem in reinforcement learning...
+
+  
+
