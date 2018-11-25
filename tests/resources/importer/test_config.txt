@@ -11,7 +11,7 @@ DocumentGroup_1:
   ArticleType: @Papers[TYPE]
   Category: @Papers[AREA]
   SummaryTitle: @Summaries[TITLE]
-  Summary: @Summaries[SUMMARY]
+  SummaryText: @Summaries[SUMMARY]
   IsRead: @Papers[IS_READ]
   AbstractsFileReader: nips("nips2018_details.txt")
   Extractor: default_pdf

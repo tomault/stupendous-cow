@@ -13,6 +13,14 @@ class SpreadsheetPath:
     def __repr__(self):
         return 'SpreadsheetPath(%s, %s)' % (repr(self.sheet), repr(self.column))
 
+    def __eq__(self, other):
+        return isinstance(other, SpreadsheetPath) and \
+               (self.sheet == other.sheet) and (self.column == other.column)
+
+    def __ne__(self, other):
+        return (not isinstance(other, SpreadsheetPath)) or \
+               (self.sheet != other.sheet) or (self.column != other.column)
+
 
 class Row:
     def __init__(self, column_names, column_map, data):

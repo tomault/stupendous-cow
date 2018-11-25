@@ -59,11 +59,10 @@ class ConfigurationFileParser:
         parameters = PyYAML.load(text)
         return self._parse_configuration(parameters)
 
-    def _parse_configuration(self, parameters)
+    def _parse_configuration(self, parameters):
         venue = self._parse_required_entry(parameters, 'Venue',
                                            ss_path_allowed = False)
-        year = self._parse_required_int(parameters, 'Year',
-                                        ss_path_allowed = False)
+        year = self._parse_required_int(parameters, 'Year')
         if year < 1500:
             self._error('Year must be >= 1500')
 
@@ -96,8 +95,15 @@ class ConfigurationFileParser:
                                                   ss_path_allowed = False,
                                                   list_allowed = True,
                                                   parents = parents)
-        priority = self._parse_optional_int(parameters, 'Priority',
-                                            parents = parents)
+        priority = self._parse_optional_entry(parameters, 'Priority',
+                                              parents = parents)
+        if isinstance(priority, str) or isinstance(priority, unicode):
+            try:
+                priority = int(priority)
+            except ValueError:
+                'Value for %s must be an integer' 
+                self._error(msg % self._full_name('Priority', parents))
+                
         downloaded_as = self._parse_required_entry(parameters, 'DownloadedAs',
                                                    constants_allowed = False,
                                                    parents = parents)
@@ -107,7 +113,7 @@ class ConfigurationFileParser:
                                               parents = parents)
         summary_title = self._parse_optional_entry(parameters, 'SummaryTitle',
                                                    constants_allowed = \
-                                                       ('extracted', )
+                                                       ('extracted', ),
                                                    parents = parents)
         summary_text = self._parse_optional_entry(parameters, 'SummaryText',
                                                   constants_allowed = False,
@@ -116,7 +122,7 @@ class ConfigurationFileParser:
                                              parents = parents)
         (abstracts_file_reader, abstracts_file_name) = \
             self._parse_abstracts_file_spec(parameters, parents)
-        extractor = self._parse_optional_entry(parameters, 'extractor',
+        extractor = self._parse_optional_entry(parameters, 'Extractor',
                                                ss_path_allowed = False,
                                                parents = parents)
 
@@ -128,12 +134,12 @@ class ConfigurationFileParser:
             if not summary_text:
                 msg = 'Required parameter SummaryText missing in %s'
                 self._error(msg % parents[0])
-            if summary_title == 'extracted':
-                if title != 'extracted':
-                    msg = 'In %s, the Title is "extracted," so the ' + \
-                          'SummaryTitle must be "extracted" as well.'
-                    self._error(msg % parents[0])
-            if not isinstance(title, SpreadsheetPath):
+            if (title == 'extracted') and (summary_title != 'extracted'):
+                msg = 'In %s, the Title is "extracted," so the ' + \
+                      'SummaryTitle must be "extracted" as well.'
+                self._error(msg % parents[0])
+            elif isinstance(title, SpreadsheetPath) and \
+                 not isinstance(summary_title, SpreadsheetPath):                
                 msg = 'In %s, the Title is taken from a spreadsheet, ' + \
                       'so the SummaryTitle must also come from a spreadsheet'
                 self._error(msg % parents[0])
@@ -155,38 +161,42 @@ class ConfigurationFileParser:
             self._error('Invalid document group index')
         return value
     
-    def _parse_required_entry(parameters, name, ss_path_allowed = True,
+    def _parse_required_entry(self, parameters, name, ss_path_allowed = True,
                               constants_allowed = True, list_allowed = False,
                               parents = ()):
         try:
-            value = parameters[name].strip()
+            value = parameters[name]
         except KeyError:
             full_name = self._full_name(name, parents)
             self._error('Required parameter "%s" is missing' % full_name)
 
+        if isinstance(value, str) or isinstance(value, unicode):
+            value = value.strip()
+            
         if not value:
             full_name = self._full_name(name, parents)
-            
             self._error('Required parameter "%s" is missing' % full_name)
         return self._parse_value(name, value, ss_path_allowed,
                                  constants_allowed, list_allowed, parents)
             
-    def _parse_optional_entry(parameters, name, ss_path_allowed = True,
+    def _parse_optional_entry(self, parameters, name, ss_path_allowed = True,
                               constants_allowed = True, list_allowed = False,
                               parents = ()):
         try:
-            value = parameters[name].strip()
+            value = parameters[name]
         except KeyError:
             return None
 
+        if isinstance(value, str) or isinstance(value, unicode):
+            value = value.strip()
         if not value:
             return None
         
         return self._parse_value(name, value, ss_path_allowed,
                                  constants_allowed, list_allowed, parents)
 
-    def _parse_required_int(parameters, name, parents = ()):
-        value = self._parse_required_value(parameters, name,
+    def _parse_required_int(self, parameters, name, parents = ()):
+        value = self._parse_required_entry(parameters, name,
                                            ss_path_allowed = False,
                                            constants_allowed = True,
                                            parents = parents)
@@ -196,8 +206,8 @@ class ConfigurationFileParser:
             full_name = self._full_name(name, parents)
             self._error('Value for "%s" must be an integer' % full_name)
 
-    def _parse_optional_int(parameters, name, parents = ()):
-        value = self._parse_optional_value(parameters, name,
+    def _parse_optional_int(self, parameters, name, parents = ()):
+        value = self._parse_optional_entry(parameters, name,
                                            ss_path_allowed = False,
                                            constants_allowed = True,
                                            parents = parents)
@@ -218,7 +228,7 @@ class ConfigurationFileParser:
 
         m = self._abstracts_file_spec_rex.match(value)
         if not m:
-            msg = 'In %s, the value for AbstractsFileSpec is invalid'
+            msg = 'In %s, the value for AbstractsFileReader is invalid'
             self._error(msg % parents[-1])
         return (m.group(1), m.group(2))
 
@@ -230,6 +240,11 @@ class ConfigurationFileParser:
                 msg = 'A list is not a legal value for %s'
                 self._error(msg % self._full_name(name, parents))
             return value
+        elif isinstance(value, int) or isinstance(value, long):
+            if not constants_allowed:
+                msg = 'A constant is not a legal value for %s'
+                self._error(msg % self._full_name(name, parents))
+            return value
         elif not (isinstance(value, str) or isinstance(value, unicode)):
             full_name = self._full_name(name, parents)
             msg = 'A %s is not a legal value for %s'
@@ -239,7 +254,7 @@ class ConfigurationFileParser:
                 msg = 'A spreadsheet path is not a legal value for %s'
                 self._error(msg % self._full_name(name, parents))
             
-            m = self._ss_path_rex.match(value):
+            m = self._ss_path_rex.match(value)
             if not m:
                 full_name = self._full_name(name, parents)
                 msg = '%s has invalid spreadsheet path [%s]'
@@ -249,6 +264,9 @@ class ConfigurationFileParser:
             msg = 'A constant is not a legal value for %s'
             self._error(msg % self._full_name(name, parents))
         else:
+            if not ((constants_allowed == True) or (value in constants_allowed)):
+                msg = '"%s" is not a legal value for %s'
+                self._error(msg % (value, self._full_name(name, parents)))
             return value
 
     def _full_name(self, name, parents):
@@ -257,7 +275,7 @@ class ConfigurationFileParser:
         return name
     
     def _error(self, details):
-        if self._filename):
+        if self._filename:
             raise IOError('Error reading %s: %s' % (self._filename, details))
         else:
             raise IOError('Error reading configuration: %s' % details)
