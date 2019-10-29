@@ -194,7 +194,7 @@ class DocumentGroupProcessor:
             try:
                 rows[name] = next(i)
             except StopIteration:
-                del itwerators[name]
+                del iterators[name]
         return rows
 
     def _find_article_pdf(self, downloaded_as):
@@ -250,8 +250,9 @@ class Director:
         venue = db.venues.with_abbreviation(configuration.venue)
         if not venue:
             raise ValueError('Unknown venue "%s"' % configuration.venue)
-        year = configuration.year
 
+        self.venue = venue
+        self.year = configuration.year
         self.groups = configuration.groups
 
     def process(self, workbook, db):

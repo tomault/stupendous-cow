@@ -29,7 +29,7 @@ class CmdLineArgs(SimpleCmdLineArgs):
         args.log_level = LOGGING_LEVEL_MAP['OFF']
 
 def run(args):
-    logging_args = { 'format' : '%{asctime} %{levelname} %{message}',
+    logging_args = { 'format' : '%(asctime)s %(levelname)s %(message)s',
                      'datefmt' : '%Y-%m-%d %H:%M:%S',
                      'level' : LOGGING_LEVEL_MAP[args.logging_level] }
     if hasattr(args, 'logging_filename'):
